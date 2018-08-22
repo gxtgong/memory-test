@@ -59,7 +59,7 @@ var test_count = 0;
 var userData = {};
 
 //change this to your own video srcs
-var vs = ["videodataset/Chrish - Indie girl introduces us to her kitchen (Vine)-8SU0gFPMwP8.mp4", "videodataset/Fresh Like You Do-AeS1MNo5rCs.mp4"];
+var vs = ["Chrish - Indie girl introduces us to her kitchen (Vine)-8SU0gFPMwP8.mp4", "Fresh Like You Do-AeS1MNo5rCs.mp4"];
 
 var microphone;
 var recorder;
@@ -70,25 +70,57 @@ var vidDOM = document.getElementById("video-test");
 
 
 
-$(document).ready(function(){
-    
-    $("#next-test").click(function(){
-        test_count ++;
-        $(document).unbind();
-        $("#btn-rec").unbind();
-        $("#btn-rec").addClass('d-none');
-        $("#div-select").addClass('d-none');
-        $("audio").addClass('d-none');
-        $("#next-test").addClass('d-none');
-        if (test_count < vs.length){
-            test();
-        }else{
-            $("#div-test").addClass('d-none');
-            nextpage();
-        }
-    })
+$("#next-test").click(function(){
+    // safe checks
+    if (!("test" in userData)) {
+        userData['test'] = {};
+    } 
+    if (!(vs[test_count] in userData['test'])) {
+        userData['test'][vs[test_count]] = {};
+    }
+    if (!('prediction' in userData['test'][vs[test_count]])) {
+        userData['test'][vs[test_count]]['prediction'] = [];
+    }
+    prediction = 0;
+    if (isRemembered) {
+        prediction = 1+2*$('input[name=opt-predict]:checked').val();
+    } else {
+        prediction = 2*$('input[name=opt-predict]:checked').val();
+    }
+    /* record data
+    0 : I do not remember
+    1 : I remember that I have seen this and make a right prediction
+    2 : I remember that I have never seen this
+    3 : I remember that I have seen this but make a false prediction
+    4 : I remember that I have seen this after the video ends
+    */
+    userData['test'][vs[test_count]]['prediction'].push(prediction);
+
+    // clear page for the next test
+    test_count ++;
+    $(document).unbind();
+    $("#btn-rec").unbind();
+    $("#btn-rec").addClass('d-none');
+    $("#div-select").addClass('d-none');
+    $("#div-check").addClass('d-none');
+    $("audio").addClass('d-none');
+    $("#next-test").addClass('d-none');
+    if (test_count < vs.length){
+        test();
+    }else{
+        $("#div-test").addClass('d-none');
+        nextpage();
+    }
 });
 
+
+$("#btn-check").click(function(){
+    vidDOM.play();
+    $("#btn-rec").addClass('d-none');
+    $("#div-check").removeClass('d-none');
+    $("#btn-check").addClass('d-none');
+    $("#next-test").removeClass('d-none');
+});
 
 function nextpage() {
     if (page_num == 1) {
@@ -111,13 +143,14 @@ function p1() {
     page_num ++;
     vidDOM.addEventListener('loadedmetadata', function(){
         console.log("LOAD "+test_count);
+        // if the video is not remembered
         setTimeout(function(){
             if (!isRemembered) {
                 $("#div-test").addClass('d-none');
                 $("#div-select").removeClass('d-none');
                 $("#next-test").removeClass('d-none');
                 $("#head-message").html("Select an option");
-                console.log("isRemembered "+isRemembered);
+                //console.log("isRemembered "+isRemembered);
             }
         }, vidDOM.duration*1000);
     });
@@ -126,6 +159,11 @@ function p1() {
 //end
 function p2() {
     $("#head-message").html("Test ends");
+    $.post('MMDDLastF'+'.json', JSON.stringify(userData, null, 4), function(data, status){
+        if (status == "success") {
+            $('#result').html('Data successfully saved under '+'MMDDLastF'+'.json');
+        }
+    });
 }
 
 function p3() {}
@@ -141,16 +179,16 @@ function test(){
     console.log("TEST "+test_count);
     $("#div-test").removeClass('d-none');
     isRemembered = false;
-    console.log("isRemembered "+isRemembered);
+    //console.log("isRemembered "+isRemembered);
     $("#head-message").html("Hit space when you remember");
-    vidDOM.src = vs[test_count];
+    vidDOM.src = 'videodataset/'+vs[test_count];
     vidDOM.play();
-    
+    // space pressed during the video
     $(document).keypress(function(e){
         if(e.keyCode == 32) {
             console.log("KEYPRESS space");
             isRemembered = true;
-            console.log("isRemembered "+isRemembered);
+            //console.log("isRemembered "+isRemembered);
             vidDOM.pause();
             $("#head-message").html("Record your description of the video");
             $("#btn-rec").removeClass("d-none");
@@ -162,7 +200,8 @@ function test(){
                     $(this).removeClass("btn-primary");
                     $(this).addClass("btn-danger");
                     //start recording
-                    $("#next-test").addClass('d-none');
+                    $("#btn-check").addClass('d-none');
+                    //$("#next-test").addClass('d-none');
                     replaceAudio();
                     audio.muted = true;
                     setSrcObject(microphone, audio);
@@ -187,17 +226,14 @@ function test(){
                     //stop recording
                     $(this).removeClass("btn-danger");
                     $(this).addClass("btn-primary");
-                    $("#next-test").removeClass('d-none');
+                    $("#btn-check").removeClass('d-none');
+                    //$("#next-test").removeClass('d-none');
                     recorder.stopRecording(stopRecordingCallback);
                 }
             });
         }
     });
 }
-
-
-
-function endTest(){}
 
 
 

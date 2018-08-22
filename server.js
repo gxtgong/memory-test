@@ -4,7 +4,7 @@ var path = require("path");
 var url = require("url");
 
 var tempFileName = "Test";
-var count = 0;
+var vidName = '';
 
 if (!fs.existsSync('./testdata')){
     fs.mkdirSync('./testdata');
@@ -81,6 +81,7 @@ http.createServer(function(req, res) {
             jsonStream.pipe(res);
 
         } else if (req.url.match(/.mp4$/)) {
+            vidName = req.url.replace('/videodataset/','').replace('.mp4', '');
 
             var mp4Path = path.join(__dirname, processed(req.url));
             var mp4Stream = fs.createReadStream(mp4Path);
@@ -115,12 +116,12 @@ http.createServer(function(req, res) {
     		body += chunk;
     	})
     	req.on("end", function() {
-            tempFileName = JSON.parse(body).fileName;
-            if (!fs.existsSync('./testdata/'+tempFileName)){
-                fs.mkdirSync('./testdata/'+tempFileName);
+            //tempFileName = JSON.parse(body).fileName;
+            if (!fs.existsSync('./testdata/'+'MMDDLastF')){
+                fs.mkdirSync('./testdata/'+'MMDDLastF');
             }
-            fs.writeFile('./testdata/'+tempFileName+'/'+tempFileName+".json", body, function(){
-                console.log("WRITE data" + " TO " + tempFileName + ".json");
+            fs.writeFile('./testdata/'+'MMDDLastF'+'/'+'MMDDLastF'+".json", body, function(){
+                console.log("WRITE data" + " TO " + 'MMDDLastF' + ".json");
                 res.end();
             });
     	})
@@ -133,6 +134,9 @@ console.log("File server running on port 8000");
 
 // function added from RecordRTC/server.js
 function uploadFile(request, response) {
+    if (!fs.existsSync('./testdata/'+'MMDDLastF')){
+        fs.mkdirSync('./testdata/'+'MMDDLastF');
+    }
     // parse a file upload
     //var mime = require('mime'); //error: can't find module mime
     var formidable = require('formidable'); //extra thing installed
@@ -150,10 +154,9 @@ function uploadFile(request, response) {
 
     //rename the file or it will be a random string
     form.on('file', function(field, file) {
-        fs.rename(file.path, path.join(__dirname, './testdata/'+tempFileName+count+".webm"), function(err){
+        fs.rename(file.path, path.join(__dirname, './testdata/MMDDLastF/'+'prediction_'+vidName+".webm"), function(err){
             if (err) throw err;
         });
-        count ++;
     });
 
     form.parse(request, function(err, fields, files) {
@@ -161,7 +164,7 @@ function uploadFile(request, response) {
         response.writeHead(200, {
             'Content-Type': 'application/json'
         });
-        response.write(JSON.stringify({'fileURL': tempFileName+".webm"}));
+        response.write(JSON.stringify({'fileURL': 'prediction_'+vidName+".webm"}));
         response.end();
     });
 }
